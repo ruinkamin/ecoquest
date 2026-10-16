@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "EcoQuest Dnipro",
+    "slug": "ecoquest-dnipro",
+    "scheme": "ecoquest",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "EcoQuest використовує фото, щоб підтвердити результат прибирання.",
+          "cameraPermission": "EcoQuest використовує камеру для фотографування очищеної ділянки.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "EcoQuest використовує геолокацію, щоб додавати мітки та показувати завдання поруч."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

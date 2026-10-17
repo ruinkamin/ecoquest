@@ -4,13 +4,13 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..models import (
-    Organization, ParticipantStatus, Quest, QuestParticipant, QuestStatus, Submission, SubmissionStatus, User,
-    XpLedger,
+    Organization, OrgStatus, ParticipantStatus, Quest, QuestParticipant, QuestStatus, Submission,
+    SubmissionStatus, User, XpLedger,
 )
 from ..schemas import ImpactOut, PortfolioItemOut, PortfolioOut, UserOut
 from .stats import _user_stats
@@ -69,6 +69,25 @@ async def impact_map(
             raise HTTPException(422, "bbox: minLng,minLat,maxLng,maxLat")
         q = q.where(Quest.lng.between(min_lng, max_lng), Quest.lat.between(min_lat, max_lat))
     rows = (await db.execute(q.order_by(Submission.decided_at.desc(), Submission.id.desc()).limit(limit))).all()
+    return await _impact(db, rows)
+
+
+@router.get("/organizations/{org_id}/impact", response_model=list[ImpactOut])
+async def organization_impact(
+    org_id: int,
+    limit: int = Query(100, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+):
+    """Публичная история выполненных квестов для профиля одобренной организации."""
+    org = await db.get(Organization, org_id)
+    if org is None or org.status != OrgStatus.APPROVED:
+        raise HTTPException(404, "Организация не найдена")
+    rows = (await db.execute(
+        _completed()
+        .where(or_(Quest.organization_id == org_id, Quest.owner_org_id == org_id))
+        .order_by(Submission.decided_at.desc(), Submission.id.desc())
+        .limit(limit)
+    )).all()
     return await _impact(db, rows)
 
 

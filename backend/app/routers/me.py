@@ -132,10 +132,10 @@ async def leaderboard(limit: int = 20, db: AsyncSession = Depends(get_db)):
 
 @router.get("/leaderboard/organizations", response_model=list[OrgLeaderOut])
 async def org_leaderboard(limit: int = 20, db: AsyncSession = Depends(get_db)):
-    points = func.sum(OrgLedger.delta).label("points")
+    points = func.coalesce(func.sum(OrgLedger.delta), 0).label("points")
     rows = await db.execute(
         select(Organization, points)
-        .join(OrgLedger, OrgLedger.organization_id == Organization.id)
+        .outerjoin(OrgLedger, OrgLedger.organization_id == Organization.id)
         .where(Organization.status == OrgStatus.APPROVED)
         .group_by(Organization.id)
         .order_by(points.desc())

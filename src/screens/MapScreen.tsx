@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Linking,
   PanResponder,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -45,6 +47,9 @@ const INITIAL_REGION: Region = {
 const TILE_SIZE = 256;
 const MIN_TILE_ZOOM = 3;
 const MAX_TILE_ZOOM = 19;
+const MAP_TILE_URL = process.env.EXPO_PUBLIC_MAP_TILE_URL?.trim()
+  || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const MAP_TILE_USER_AGENT = 'EcoQuest/1.0 (+https://github.com/ruinkamin/ecoquest)';
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const longitudeToWorldX = (longitude: number, worldSize: number) =>
@@ -128,12 +133,12 @@ export const MapScreen: React.FC<Props> = ({
   const mapTiles = useMemo(() => {
     if (mapSize.width <= 1 || mapSize.height <= 1) return [];
     const tileCount = 2 ** mapProjection.zoom;
-    const firstTileX = Math.floor(mapProjection.originX / mapProjection.tileSize) - 1;
+    const firstTileX = Math.floor(mapProjection.originX / mapProjection.tileSize);
     const lastTileX =
-      Math.floor((mapProjection.originX + mapSize.width) / mapProjection.tileSize) + 1;
-    const firstTileY = Math.floor(mapProjection.originY / mapProjection.tileSize) - 1;
+      Math.floor((mapProjection.originX + mapSize.width) / mapProjection.tileSize);
+    const firstTileY = Math.floor(mapProjection.originY / mapProjection.tileSize);
     const lastTileY =
-      Math.floor((mapProjection.originY + mapSize.height) / mapProjection.tileSize) + 1;
+      Math.floor((mapProjection.originY + mapSize.height) / mapProjection.tileSize);
     const tiles: {
       key: string;
       uri: string;
@@ -148,7 +153,10 @@ export const MapScreen: React.FC<Props> = ({
         const wrappedX = ((tileX % tileCount) + tileCount) % tileCount;
         tiles.push({
           key: `${mapProjection.zoom}/${wrappedX}/${tileY}`,
-          uri: `https://tile.openstreetmap.org/${mapProjection.zoom}/${wrappedX}/${tileY}.png`,
+          uri: MAP_TILE_URL
+            .replace('{z}', String(mapProjection.zoom))
+            .replace('{x}', String(wrappedX))
+            .replace('{y}', String(tileY)),
           left: tileX * mapProjection.tileSize - mapProjection.originX,
           top: tileY * mapProjection.tileSize - mapProjection.originY,
           size: mapProjection.tileSize,
@@ -274,6 +282,12 @@ export const MapScreen: React.FC<Props> = ({
     }));
   };
 
+  const openMapLink = (url: string) => {
+    void Linking.openURL(url).catch((linkError: unknown) => {
+      setError(linkError instanceof Error ? linkError.message : 'Не вдалося відкрити посилання на мапу.');
+    });
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -393,7 +407,10 @@ export const MapScreen: React.FC<Props> = ({
           {mapTiles.map((tile) => (
             <Image
               key={tile.key}
-              source={{ uri: tile.uri }}
+              source={{
+                uri: tile.uri,
+                headers: Platform.OS === 'web' ? undefined : { 'User-Agent': MAP_TILE_USER_AGENT },
+              }}
               style={[styles.mapTile, { left: tile.left, top: tile.top, width: tile.size, height: tile.size }]}
               resizeMode="stretch"
               onLoad={() => setMapTileError(false)}
@@ -565,7 +582,20 @@ export const MapScreen: React.FC<Props> = ({
           <Text style={[styles.footerTitle, { color: colors.textPrimary }]}>
             {layer === 'quests' ? `${visibleQuests.length} квестів поруч` : layer === 'reports' ? `${visibleReports.length} активностей поруч` : `${visibleImpacts.length} перевірених справ`}
           </Text>
-          <Text style={[styles.footerSubtitle, { color: colors.textSecondary }]}>Дніпро · © OpenStreetMap contributors</Text>
+          <TouchableOpacity
+            onPress={() => openMapLink('https://www.openstreetmap.org/copyright')}
+            accessibilityRole="link"
+            accessibilityLabel="Ліцензія OpenStreetMap"
+          >
+            <Text style={[styles.footerSubtitle, { color: colors.textSecondary }]}>Дніпро · © OpenStreetMap contributors</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => openMapLink('https://www.openstreetmap.org/fixthemap')}
+            accessibilityRole="link"
+            accessibilityLabel="Повідомити про проблему з мапою"
+          >
+            <Text style={[styles.mapIssueLink, { color: colors.primaryDark }]}>Повідомити про помилку мапи</Text>
+          </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={[styles.refreshButton, { backgroundColor: colors.primaryLight }]}
@@ -734,10 +764,11 @@ const styles = StyleSheet.create({
   panHintText: { fontSize: 10, fontWeight: '600' },
   zoomControls: { position: 'absolute', right: 16, bottom: 78, borderRadius: 12, borderWidth: 1, overflow: 'hidden', elevation: 3 },
   zoomButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1 },
-  mapFooter: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderTopWidth: 1 },
-  footerText: { gap: 2 },
+  mapFooter: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderTopWidth: 1 },
+  footerText: { gap: 2, paddingVertical: 6 },
   footerTitle: { fontSize: 13, fontWeight: '800' },
   footerSubtitle: { fontSize: 10 },
+  mapIssueLink: { fontSize: 9, fontWeight: '700' },
   refreshButton: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   bottomSheet: { position: 'absolute', left: 12, right: 12, bottom: 64, zIndex: 6, padding: 14, borderRadius: 20, borderWidth: 1, elevation: 9 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

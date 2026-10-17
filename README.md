@@ -51,7 +51,7 @@ When the web app is opened on `localhost` or `127.0.0.1`, it connects to the bac
 `http://127.0.0.1:8000` automatically. Native apps and web pages opened from another host use
 `EXPO_PUBLIC_API_URL`, which must point to a reachable API server.
 
-The client includes the documented API flows for account registration and recovery, Google/demo sign-in, quests and reports, team invitations, organization and partner applications, reward management/redemption, and platform/organization moderation. XP starts at zero and is awarded by the backend only for verified quest completions. There is no rating/leaderboard screen. After signing in, open **Профіль → Організації, партнери та модерація** to manage organizations or partner rewards; platform moderation appears for moderator/admin accounts. The server remains authoritative for every permission and action.
+The client includes the documented API flows for account registration and recovery, Google/demo sign-in, quests and reports, team invitations, organization and partner applications, reward management/redemption, and platform/organization moderation. XP starts at zero and is awarded by the backend only for verified quest completions. The **Рейтинг** page shows volunteer XP and organization points; selecting an organization opens its public profile and verified before/after quest history. After signing in, open **Профіль → Організації, партнери та модерація** to manage organizations or partner rewards; platform moderation appears for moderator/admin accounts. The server remains authoritative for every permission and action.
 
 Map activities can be assigned for AI or creator assessment. Creator-assigned activities can be rated from **Профіль → Активність**; AI-assessment failures can be retried there. The backend stores assessment choice and results and upgrades existing SQLite/PostgreSQL `reports` tables on startup.
 
@@ -60,9 +60,14 @@ Partner reward listings and promo-code redemption are supported. Direct integrat
 The Neon PostgreSQL connection string is for the backend only; Expo must use the backend's HTTP(S)
 URL, never a database connection string. Verify that the backend responds at `/health`.
 Expo reads `EXPO_PUBLIC_API_URL` at bundle time; restart Expo after changing `.env.local` and clear
-its cache with `npx expo start --clear` if the old address is still used. The map uses OpenStreetMap
-tiles and displays contributor attribution. The API client does not bundle backend data or
-credentials.
+its cache with `npx expo start --clear` if the old address is still used. The map uses interactive
+OpenStreetMap raster tiles, reduces requests to tiles in the visible viewport, sends an identifying
+app User-Agent on native platforms, and displays linked attribution and a map-issue link. The
+OpenStreetMap Foundation tile service is best-effort and can block traffic; follow its
+[tile usage policy](https://operations.osmfoundation.org/policies/tiles/). If using another hosted
+tile provider, set `EXPO_PUBLIC_MAP_TILE_URL` in `.env.local` to its URL template containing
+`{z}`, `{x}`, and `{y}`, and follow that provider's terms. Restart Expo after changing it. The API
+client does not bundle backend data or credentials.
 
 ## Google sign-in
 

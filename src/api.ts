@@ -199,6 +199,16 @@ export interface OrganizationSummary {
   created_at?: string;
 }
 
+export interface OrganizationDetail extends OrganizationSummary {
+  head?: ApiUser;
+  members?: (ApiUser & { role?: string })[];
+  completed_quests?: number;
+  is_head?: boolean;
+  is_member?: boolean;
+  is_moderator?: boolean;
+  trust?: { decisions: number; disputed: number; disputed_ratio: number; under_review: boolean };
+}
+
 export interface OrganizationStats {
   organization: OrganizationSummary;
   points: number;
@@ -543,23 +553,17 @@ export const api = {
   getRewards: () => apiFetch<Reward[]>('/rewards'),
   getReward: (id: number) => apiFetch<Reward>(`/rewards/${id}`),
   redeemReward: (id: number) => apiFetch<{ code: string }>(`/rewards/${id}/redeem`, { method: 'POST' }),
-  getLeaderboard: () => apiFetch<LeaderboardEntry[]>('/leaderboard'),
-  getOrganizationLeaderboard: () => apiFetch<OrganizationLeaderboardEntry[]>('/leaderboard/organizations'),
+  getLeaderboard: (limit = 100) =>
+    apiFetch<LeaderboardEntry[]>(`/leaderboard${queryString({ limit })}`),
+  getOrganizationLeaderboard: (limit = 100) =>
+    apiFetch<OrganizationLeaderboardEntry[]>(`/leaderboard/organizations${queryString({ limit })}`),
   getOrganizations: () => apiFetch<OrganizationSummary[]>('/organizations'),
   applyForOrganization: (name: string, description: string, logoUrl?: string) =>
     apiFetch<OrganizationSummary>('/organizations', {
       method: 'POST',
       body: JSON.stringify({ name, description, logo_url: logoUrl }),
     }),
-  getOrganization: (id: number) => apiFetch<OrganizationSummary & {
-    head?: ApiUser;
-    members?: (ApiUser & { role?: string })[];
-    completed_quests?: number;
-    is_head?: boolean;
-    is_member?: boolean;
-    is_moderator?: boolean;
-    trust?: { decisions: number; disputed: number; disputed_ratio: number; under_review: boolean };
-  }>(`/organizations/${id}`),
+  getOrganization: (id: number) => apiFetch<OrganizationDetail>(`/organizations/${id}`),
   addOrganizationMember: (id: number, userId?: number, email?: string) =>
     apiFetch<ApiUser>(`/organizations/${id}/members`, {
       method: 'POST',
@@ -573,6 +577,7 @@ export const api = {
   removeOrganizationMember: (organizationId: number, userId: number) =>
     apiFetch<void>(`/organizations/${organizationId}/members/${userId}`, { method: 'DELETE' }),
   getOrganizationStats: (id: number) => apiFetch<OrganizationStats>(`/organizations/${id}/stats`),
+  getOrganizationImpact: (id: number) => apiFetch<ImpactItem[]>(`/organizations/${id}/impact`),
   getOrganizationQuestQueue: (id: number, status: 'pending' | 'available' | 'blocked' | 'all' = 'pending') =>
     apiFetch<Quest[]>(`/organizations/${id}/moderation/quests${queryString({ status })}`),
   getOrganizationModerationQuest: (organizationId: number, questId: number) =>

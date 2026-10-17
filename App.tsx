@@ -20,6 +20,7 @@ import { MapScreen } from './src/screens/MapScreen';
 import { TaskDetailsScreen } from './src/screens/TaskDetailsScreen';
 import { SubmitReportScreen } from './src/screens/SubmitReportScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
 import { CommunityScreen } from './src/screens/CommunityScreen';
 import { Button } from './src/components/Common';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,7 +35,7 @@ export default function App() {
   // Стан користувача
   const [user, setUser] = useState<ApiUser | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'map' | 'profile'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'leaderboard' | 'profile'>('map');
   const [currentTask, setCurrentTask] = useState<Quest | null>(null);
   const [reportQuestId, setReportQuestId] = useState<number | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
@@ -234,6 +235,12 @@ export default function App() {
             refreshKey={mapRefreshKey}
             focusImpactId={focusImpactId}
           />
+        ) : activeTab === 'leaderboard' ? (
+          <LeaderboardScreen
+            colors={colors}
+            currentUserId={user?.id}
+            onBack={() => setActiveTab('map')}
+          />
         ) : (
           <ProfileScreen
             userName={user?.name || 'Волонтер EcoQuest'}
@@ -249,6 +256,7 @@ export default function App() {
             onPortfolio={() => user && setPublicPortfolioId(user.id)}
             onOpenCommunity={() => setShowCommunityModal(true)}
             onOpenMap={() => setActiveTab('map')}
+            onOpenLeaderboard={() => setActiveTab('leaderboard')}
           />
         )}
       </View>
@@ -268,6 +276,22 @@ export default function App() {
             ]}
           >
             Мапа
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('leaderboard')}>
+          <Ionicons
+            name={activeTab === 'leaderboard' ? 'trophy' : 'trophy-outline'}
+            size={22}
+            color={activeTab === 'leaderboard' ? colors.primary : colors.textMuted}
+          />
+          <Text
+            style={[
+              styles.tabLabel,
+              { color: activeTab === 'leaderboard' ? colors.primary : colors.textMuted, fontWeight: activeTab === 'leaderboard' ? '700' : '500' },
+            ]}
+          >
+            Рейтинг
           </Text>
         </TouchableOpacity>
 

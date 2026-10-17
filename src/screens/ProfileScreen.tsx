@@ -47,6 +47,7 @@ interface Props {
   onPortfolio: () => void;
   onOpenCommunity: () => void;
   onOpenMap: () => void;
+  onOpenLeaderboard: () => void;
 }
 
 export const ProfileScreen: React.FC<Props> = ({
@@ -63,6 +64,7 @@ export const ProfileScreen: React.FC<Props> = ({
   onPortfolio,
   onOpenCommunity,
   onOpenMap,
+  onOpenLeaderboard,
 }) => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -262,7 +264,6 @@ export const ProfileScreen: React.FC<Props> = ({
   };
 
   const displayName = userName.trim() || 'Волонтер EcoQuest';
-  const initialLetters = displayName.slice(0, 2).toUpperCase();
   const progress = stats
     ? Math.min(100, Math.round((stats.level_progress_xp / Math.max(1, stats.xp_per_level)) * 100))
     : 0;
@@ -339,11 +340,7 @@ export const ProfileScreen: React.FC<Props> = ({
           <>
             <View style={[
               styles.userHeader,
-              { backgroundColor: colors.surface, borderColor: colors.border },
             ]}>
-              <View style={[styles.avatarBox, { backgroundColor: colors.primaryLight }]}>
-                <Text style={[styles.avatarText, { color: colors.primaryDark }]}>{initialLetters}</Text>
-              </View>
               <Text style={[styles.nameTitle, { color: colors.textPrimary }]}>{displayName}</Text>
               <Text style={[styles.userHandle, { color: colors.textSecondary }]}>
                 {stats?.user.email || 'Перевірений волонтер EcoQuest'}
@@ -367,6 +364,18 @@ export const ProfileScreen: React.FC<Props> = ({
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.leaderboardCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={onOpenLeaderboard}
+              accessibilityRole="button"
+            >
+              <View style={styles.leaderboardCopy}>
+                <Text style={[styles.leaderboardTitle, { color: colors.textPrimary }]}>Рейтинг волонтерів та організацій</Text>
+                <Text style={[styles.rewardTerms, { color: colors.textSecondary }]}>Переглянути лідерів EcoQuest</Text>
+              </View>
+              <Ionicons name="trophy" size={21} color={colors.gold} />
             </TouchableOpacity>
 
             <View style={[styles.levelCard, { backgroundColor: colors.secondaryPurple }]}>
@@ -715,6 +724,9 @@ export const ProfileScreen: React.FC<Props> = ({
             {loading ? <ActivityIndicator color={colors.primaryDark} /> : null}
             {myQuests.map((quest) => (
               <View key={quest.id} style={[styles.activityCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                {getPhotoUrl(quest.photo_url) ? (
+                  <Image source={{ uri: getPhotoUrl(quest.photo_url) }} style={styles.activityPhoto} resizeMode="cover" />
+                ) : null}
                 <Text style={[styles.rewardTitle, { color: colors.textPrimary }]}>{quest.title || `Квест #${quest.id}`}</Text>
                 <Text style={[styles.rewardTerms, { color: colors.textSecondary }]}>{quest.status} · {quest.reward_xp || 0} XP</Text>
                 {questKind === 'taken' && quest.status === 'in_progress' && quest.executor_id === userId ? (
@@ -763,6 +775,9 @@ export const ProfileScreen: React.FC<Props> = ({
             <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginTop: 18 }]}>Запрошення до команди</Text>
             {invitations.map((invitation) => (
               <View key={invitation.quest.id} style={[styles.activityCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                {getPhotoUrl(invitation.quest.photo_url) ? (
+                  <Image source={{ uri: getPhotoUrl(invitation.quest.photo_url) }} style={styles.activityPhoto} resizeMode="cover" />
+                ) : null}
                 <Text style={[styles.rewardTitle, { color: colors.textPrimary }]}>{invitation.quest.title || 'Запрошення до квесту'}</Text>
                 <Text style={[styles.rewardTerms, { color: colors.textSecondary }]}>Статус: {invitation.status}</Text>
                 <View style={styles.invitationActions}>
@@ -815,13 +830,14 @@ const styles = StyleSheet.create({
   tabBtn: { paddingHorizontal: 9, paddingVertical: 9, alignItems: 'center' },
   tabLabel: { fontSize: 11, fontWeight: '800', paddingBottom: 1 },
   scroll: { padding: 16, paddingBottom: 60 },
-  userHeader: { alignItems: 'center', marginBottom: 14, padding: 18, borderRadius: 20, borderWidth: 1 },
-  avatarBox: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  avatarText: { fontSize: 24, fontWeight: '900' },
+  userHeader: { alignItems: 'center', marginBottom: 14, paddingVertical: 8 },
   nameTitle: { fontSize: 22, fontWeight: '900' },
   userHandle: { fontSize: 12, marginTop: 2 },
   themeRowCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 14 },
   themeRowText: { fontSize: 14, fontWeight: '700' },
+  leaderboardCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 14 },
+  leaderboardCopy: { flex: 1, marginRight: 8 },
+  leaderboardTitle: { fontSize: 13, fontWeight: '800' },
   levelCard: { padding: 16, borderRadius: 18, marginBottom: 14 },
   firstQuestCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 17, borderWidth: 1, marginBottom: 14 },
   firstQuestCopy: { flex: 1, gap: 4 },

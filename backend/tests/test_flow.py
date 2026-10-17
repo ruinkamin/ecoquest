@@ -341,6 +341,13 @@ with TestClient(app) as c:
     app_ = ok(c.post("/organizations", headers=h(borya), json={"name": "Боря і Ко"}), 201)
     ok(c.post(f"/moderation/organizations/{app_['id']}/decision", headers=h(mod), json={"approved": True}))
     assert app_["id"] in ok(c.get("/me", headers=h(borya)))["moderated_org_ids"]
+    org_history = ok(c.get(f"/organizations/{org}/impact"))
+    assert all("photo_before_url" in item and "photo_after_url" in item for item in org_history)
+    new_org_rank = next(
+        entry for entry in ok(c.get("/leaderboard/organizations?limit=100"))
+        if entry["organization"]["id"] == app_["id"]
+    )
+    assert new_org_rank["points"] == 0
     ok(c.post(f"/organizations/{org}/members", headers=h(danya), json={"email": "anya@mail.com"}), 201)
     ok(c.post(f"/organizations/{org}/members", headers=h(masha), json={"user_id": ids["Боря"]}), 403)
     acts = ok(c.get("/moderation/actions", headers=h(mod)))

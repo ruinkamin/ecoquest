@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge, Button } from '../components/Common';
 import { ApiError, ApiUser, OrganizationSummary, Quest, api, getPhotoUrl } from '../api';
@@ -166,7 +166,7 @@ export const TaskDetailsScreen: React.FC<Props> = ({
   const imageUrl = getPhotoUrl(details.photo_url);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.navBar, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} accessibilityRole="button" accessibilityLabel="Назад">
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />

@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge, Button } from '../components/Common';
 import { Task, TaskStatus, statusLabel } from '../data/tasks';
@@ -96,7 +96,7 @@ export const TaskDetailsExperienceScreen: React.FC<{
   const isActive = currentStatus === 'in_progress';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Назад">
           <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />

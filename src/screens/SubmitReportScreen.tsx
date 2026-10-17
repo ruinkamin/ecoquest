@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeColors } from '../theme';
@@ -133,7 +133,7 @@ export const SubmitReportScreen: React.FC<Props> = ({
   const rejected = submission?.status === 'rejected';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.navBar, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Закрити звіт">
           <Ionicons name="close" size={24} color={colors.textPrimary} />

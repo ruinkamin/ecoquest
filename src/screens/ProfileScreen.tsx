@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   Share,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeColors } from '../theme';
 import { Badge, Button } from '../components/Common';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,8 +30,6 @@ import {
 
 type ProfileTab = 'profile' | 'activity' | 'teams' | 'rewards' | 'codes';
 type QuestKind = 'taken' | 'created' | 'completed';
-type ReviewerFilter = 'all' | 'self' | 'ai';
-type ReviewStatusFilter = 'all' | 'evaluated' | 'pending';
 
 interface Props {
   userName: string;
@@ -77,9 +75,6 @@ export const ProfileScreen: React.FC<Props> = ({
   const [questKind, setQuestKind] = useState<QuestKind>('taken');
   const [confirmingAbandonId, setConfirmingAbandonId] = useState<number | null>(null);
   const [abandoningQuestId, setAbandoningQuestId] = useState<number | null>(null);
-  const [reviewerFilter, setReviewerFilter] = useState<ReviewerFilter>('all');
-  const [reviewStatusFilter, setReviewStatusFilter] = useState<ReviewStatusFilter>('all');
-  const [reportSearch, setReportSearch] = useState('');
   const [reviewScores, setReviewScores] = useState<Record<number, number>>({});
   const [reviewNotes, setReviewNotes] = useState<Record<number, string>>({});
   const [savingReviewId, setSavingReviewId] = useState<number | null>(null);
@@ -267,22 +262,15 @@ export const ProfileScreen: React.FC<Props> = ({
   const progress = stats
     ? Math.min(100, Math.round((stats.level_progress_xp / Math.max(1, stats.xp_per_level)) * 100))
     : 0;
-  const visibleReports = myReports.filter((report) => {
-    if (reviewerFilter !== 'all' && report.reviewer_type !== reviewerFilter) return false;
-    if (reviewerFilter === 'self' && reviewStatusFilter !== 'all') {
-      const isEvaluated = report.review_status === 'evaluated';
-      if (reviewStatusFilter === 'evaluated' && !isEvaluated) return false;
-      if (reviewStatusFilter === 'pending' && isEvaluated) return false;
-    }
-    return !reportSearch.trim()
-      || (report.description || '').toLocaleLowerCase().includes(reportSearch.trim().toLocaleLowerCase());
-  });
+  // Активності оцінює AI автоматично; старі активності із самооцінкою показуються як є.
+  const visibleReports = myReports;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.tabBarScroll}
         contentContainerStyle={[styles.tabBar, { borderBottomColor: colors.border }]}
       >
         {([
@@ -561,67 +549,6 @@ export const ProfileScreen: React.FC<Props> = ({
         {activeTab === 'activity' && (
           <>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Мої активності</Text>
-            <View style={styles.activityFilters}>
-              {([
-                ['all', 'Усі'],
-                ['self', 'Оцінені мною'],
-                ['ai', 'Оцінені не мною'],
-              ] as [ReviewerFilter, string][]).map(([filter, label]) => (
-                <TouchableOpacity
-                  key={filter}
-                  onPress={() => setReviewerFilter(filter)}
-                  style={[
-                    styles.activityFilter,
-                    { backgroundColor: reviewerFilter === filter ? colors.primaryLight : colors.surface },
-                  ]}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: reviewerFilter === filter }}
-                >
-                  <Text style={{ color: reviewerFilter === filter ? colors.primaryDark : colors.textSecondary, fontSize: 11, fontWeight: '800' }}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {reviewerFilter === 'self' ? (
-              <>
-                <View style={[styles.searchRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Ionicons name="search" size={18} color={colors.textMuted} />
-                  <TextInput
-                    value={reportSearch}
-                    onChangeText={setReportSearch}
-                    placeholder="Пошук активностей"
-                    placeholderTextColor={colors.textMuted}
-                    style={[styles.reportSearch, { color: colors.textPrimary }]}
-                    returnKeyType="search"
-                    accessibilityLabel="Пошук активностей, призначених для вашого оцінювання"
-                  />
-                </View>
-                <View style={styles.reviewStatusFilters}>
-                  {([
-                    ['all', 'Усі'],
-                    ['evaluated', 'Оцінені'],
-                    ['pending', 'Не оцінені'],
-                  ] as [ReviewStatusFilter, string][]).map(([filter, label]) => (
-                    <TouchableOpacity
-                      key={filter}
-                      onPress={() => setReviewStatusFilter(filter)}
-                      style={[
-                        styles.reviewStatusFilter,
-                        { borderColor: reviewStatusFilter === filter ? colors.primary : colors.border },
-                        reviewStatusFilter === filter && { backgroundColor: colors.primaryLight },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: reviewStatusFilter === filter }}
-                    >
-                      <Text style={{ color: reviewStatusFilter === filter ? colors.primaryDark : colors.textSecondary, fontSize: 11, fontWeight: '800' }}>
-                        {label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            ) : null}
             {loading && !myReports.length ? <ActivityIndicator color={colors.primaryDark} /> : null}
             {visibleReports.map((report) => {
               const imageUrl = getPhotoUrl(report.photo_url);
@@ -826,6 +753,8 @@ const Metric: React.FC<{ value: number | string; label: string; colors: ThemeCol
 const styles = StyleSheet.create({
   container: { flex: 1 },
   contentScroll: { flex: 1 },
+  // Горизонтальный ScrollView по умолчанию растягивается и делит экран пополам с контентом.
+  tabBarScroll: { flexGrow: 0, flexShrink: 0 },
   tabBar: { flexDirection: 'row', gap: 3, paddingHorizontal: 8, paddingVertical: 2 },
   tabBtn: { paddingHorizontal: 9, paddingVertical: 9, alignItems: 'center' },
   tabLabel: { fontSize: 11, fontWeight: '800', paddingBottom: 1 },

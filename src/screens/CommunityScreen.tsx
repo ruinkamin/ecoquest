@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,11 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { ApiUser, MapReport, ModerationSubmission, OrganizationStats, OrganizationSummary, PartnerSummary, Quest, Reward, UploadPhoto, api, getPhotoUrl } from '../api';
+import { ApiUser, MapReport, ModerationSubmission, OrganizationStats, OrganizationSummary, PartnerSummary, Quest, QuestChanges, Reward, UploadPhoto, api, getPhotoUrl } from '../api';
 import { Button } from '../components/Common';
+import { QuestEditorModal } from '../components/QuestEditorModal';
 import { ThemeColors } from '../theme';
 import { preparePhotoForUpload } from '../utils/photo';
 
@@ -80,6 +81,8 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
   const [existingRewardCodes, setExistingRewardCodes] = useState('');
   const [reviewPercent, setReviewPercent] = useState('100');
   const [reviewNote, setReviewNote] = useState('');
+  // Квест, открытый в редакторе: очередь организации или модератора платформы.
+  const [editing, setEditing] = useState<{ quest: Quest; scope: 'org' | 'platform' } | null>(null);
   const canModeratePlatform = isPlatformModerator(user);
 
   const run = useCallback(async (action: () => Promise<void>) => {
@@ -335,6 +338,51 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
     setNotice(publish ? 'Квест опубліковано.' : 'Квест заблоковано.');
   });
 
+  const reloadQuestQueue = async (scope: 'org' | 'platform') => {
+    if (scope === 'org' && selectedOrganizationId !== null) {
+      setOrganizationQuests(await api.getOrganizationQuestQueue(selectedOrganizationId, organizationQuestStatus));
+    } else if (scope === 'platform') {
+      setModerationQuests(await api.getModerationQuests(platformQuestStatus));
+    }
+  };
+
+  const editQuest = async (scope: 'org' | 'platform', questId: number, changes: QuestChanges) => {
+    if (!Object.keys(changes).length) return;
+    if (scope === 'org') {
+      if (selectedOrganizationId === null) throw new Error('Оберіть організацію.');
+      await api.editOrganizationQuest(selectedOrganizationId, questId, changes);
+    } else {
+      await api.editModerationQuest(questId, changes);
+    }
+  };
+
+  const saveEditedQuest = async (scope: 'org' | 'platform', questId: number, changes: QuestChanges) => {
+    await editQuest(scope, questId, changes);
+    await reloadQuestQueue(scope);
+    setNotice('Квест оновлено.');
+  };
+
+  const publishEditedQuest = async (scope: 'org' | 'platform', questId: number, changes: QuestChanges, note: string) => {
+    await editQuest(scope, questId, changes);
+    if (scope === 'org' && selectedOrganizationId !== null) {
+      await api.publishOrganizationQuest(selectedOrganizationId, questId, note || 'Перевірено організацією');
+    } else {
+      await api.publishModerationQuest(questId, note || 'Перевірено модератором');
+    }
+    await reloadQuestQueue(scope);
+    setNotice('Квест опубліковано.');
+  };
+
+  const blockEditedQuest = async (scope: 'org' | 'platform', questId: number, reason: string) => {
+    if (scope === 'org' && selectedOrganizationId !== null) {
+      await api.blockOrganizationQuest(selectedOrganizationId, questId, reason);
+    } else {
+      await api.blockModerationQuest(questId, reason);
+    }
+    await reloadQuestQueue(scope);
+    setNotice('Квест заблоковано.');
+  };
+
   const decideOrganization = (item: OrganizationSummary, approved: boolean) => run(async () => {
     await api.decideModerationOrganization(item.id, approved, reviewNote.trim() || undefined);
     setPendingOrganizations(await api.getModerationOrganizations());
@@ -449,7 +497,7 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
           <Button title="Заблокувати" colors={colors} variant="danger" onPress={onBlock} />
         </View>
       ) : null}
-      {onEdit ? <Button title="Зберегти назву й опис" colors={colors} variant="outline" onPress={onEdit} /> : null}
+      {onEdit ? <Button title="Відкрити й редагувати" colors={colors} variant="secondary" onPress={onEdit} /> : null}
     </View>
   );
 
@@ -485,7 +533,7 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Закрити розділ">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
@@ -567,8 +615,6 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
                       { id: 'blocked', label: 'Заблоковані' },
                       { id: 'all', label: 'Усі' },
                     ], organizationQuestStatus, setOrganizationQuestStatus)}
-                    {field('Назва для редагування', reportTitle, setReportTitle, 'Залиште порожнім, щоб не змінювати')}
-                    {field('Опис для редагування', reportDescription, setReportDescription, 'Залиште порожнім, щоб не змінювати', true)}
                     <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                       <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Створити новий квест</Text>
                       {field('Назва', directQuestTitle, setDirectQuestTitle, 'Що потрібно зробити')}
@@ -601,15 +647,7 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
                         await api.blockOrganizationQuest(selectedOrganization.id, quest.id, reviewNote.trim() || 'Відхилено організацією');
                         setOrganizationQuests(await api.getOrganizationQuestQueue(selectedOrganization.id, organizationQuestStatus));
                       }) : undefined,
-                      organizationQuestStatus === 'pending' ? () => void run(async () => {
-                        const changes: Partial<Pick<Quest, 'title' | 'description'>> = {};
-                        if (reportTitle.trim()) changes.title = reportTitle.trim();
-                        if (reportDescription.trim()) changes.description = reportDescription.trim();
-                        if (!Object.keys(changes).length) throw new Error('Вкажіть нову назву або опис.');
-                        await api.editOrganizationQuest(selectedOrganization.id, quest.id, changes);
-                        setOrganizationQuests(await api.getOrganizationQuestQueue(selectedOrganization.id, organizationQuestStatus));
-                        setNotice('Квест оновлено.');
-                      }) : undefined,
+                      organizationQuestStatus === 'pending' ? () => setEditing({ quest, scope: 'org' }) : undefined,
                     ))}
                     {!organizationQuests.length ? <Text style={[styles.bodyText, { color: colors.textSecondary }]}>Черга квестів порожня.</Text> : null}
                     {field('Коментар модерації', reviewNote, setReviewNote, 'Причина публікації або блокування')}
@@ -792,8 +830,6 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
                   { id: 'blocked', label: 'Заблоковані' },
                   { id: 'all', label: 'Усі' },
                 ], platformQuestStatus, setPlatformQuestStatus)}
-                {field('Нова назва', reportTitle, setReportTitle, 'Залиште порожнім, щоб не змінювати')}
-                {field('Новий опис', reportDescription, setReportDescription, 'Залиште порожнім, щоб не змінювати', true)}
               </>
             ) : null}
             {(moderationPanel === 'quests') && (
@@ -808,15 +844,9 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
                     setBusyId(quest.id);
                     void actOnModerationQuest(quest, false);
                   } : undefined,
-                  platformQuestStatus === 'hazard' || platformQuestStatus === 'pending' ? () => void run(async () => {
-                    const changes: Partial<Pick<Quest, 'title' | 'description'>> = {};
-                    if (reportTitle.trim()) changes.title = reportTitle.trim();
-                    if (reportDescription.trim()) changes.description = reportDescription.trim();
-                    if (!Object.keys(changes).length) throw new Error('Вкажіть нову назву або опис.');
-                    await api.editModerationQuest(quest.id, changes);
-                    setModerationQuests(await api.getModerationQuests(platformQuestStatus));
-                    setNotice('Квест оновлено.');
-                  }) : undefined,
+                  platformQuestStatus === 'hazard' || platformQuestStatus === 'pending'
+                    ? () => setEditing({ quest, scope: 'platform' })
+                    : undefined,
                 ))}
                 {!moderationQuests.length ? <Text style={[styles.bodyText, { color: colors.textSecondary }]}>Немає небезпечних квестів на перевірці.</Text> : null}
               </>
@@ -878,6 +908,18 @@ export const CommunityScreen: React.FC<Props> = ({ user, colors, onClose }) => {
           </>
         )}
       </ScrollView>
+
+      {editing ? (
+        <QuestEditorModal
+          quest={editing.quest}
+          colors={colors}
+          canPublishHazard={editing.scope === 'platform'}
+          onClose={() => setEditing(null)}
+          onSave={(changes) => saveEditedQuest(editing.scope, editing.quest.id, changes)}
+          onPublish={(changes, note) => publishEditedQuest(editing.scope, editing.quest.id, changes, note)}
+          onBlock={(reason) => blockEditedQuest(editing.scope, editing.quest.id, reason)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 };

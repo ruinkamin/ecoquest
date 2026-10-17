@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ImpactItem,
@@ -18,6 +18,7 @@ import {
   getPhotoUrl,
 } from '../api';
 import { ThemeColors } from '../theme';
+import { ImpactDetailsModal } from '../components/ImpactDetailsModal';
 
 interface Props {
   organizationId: number;
@@ -33,6 +34,7 @@ export const OrganizationProfileScreen: React.FC<Props> = ({
   const [organization, setOrganization] = useState<OrganizationDetail | null>(null);
   const [stats, setStats] = useState<OrganizationStats | null>(null);
   const [history, setHistory] = useState<ImpactItem[]>([]);
+  const [openedItem, setOpenedItem] = useState<ImpactItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -60,7 +62,7 @@ export const OrganizationProfileScreen: React.FC<Props> = ({
   }, [load]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} accessibilityRole="button" accessibilityLabel="Назад">
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
@@ -153,7 +155,7 @@ export const OrganizationProfileScreen: React.FC<Props> = ({
             </View>
 
             {history.map((item) => (
-              <HistoryCard key={item.quest_id} item={item} colors={colors} />
+              <HistoryCard key={item.quest_id} item={item} colors={colors} onPress={() => setOpenedItem(item)} />
             ))}
             {!history.length ? (
               <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -189,6 +191,7 @@ export const OrganizationProfileScreen: React.FC<Props> = ({
           </>
         ) : null}
       </ScrollView>
+      {openedItem ? <ImpactDetailsModal item={openedItem} colors={colors} onClose={() => setOpenedItem(null)} /> : null}
     </SafeAreaView>
   );
 };
@@ -206,12 +209,18 @@ const Metric: React.FC<{
   </View>
 );
 
-const HistoryCard: React.FC<{ item: ImpactItem; colors: ThemeColors }> = ({ item, colors }) => {
+const HistoryCard: React.FC<{ item: ImpactItem; colors: ThemeColors; onPress: () => void }> = ({ item, colors, onPress }) => {
   const before = getPhotoUrl(item.photo_before_url);
   const after = getPhotoUrl(item.photo_after_url);
 
   return (
-    <View style={[styles.historyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Деталі: ${item.title || 'виконаний квест'}`}
+      style={[styles.historyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+    >
       <View style={styles.historyPhotos}>
         {before ? <Image source={{ uri: before }} style={styles.historyPhoto} resizeMode="cover" /> : null}
         {after ? <Image source={{ uri: after }} style={styles.historyPhoto} resizeMode="cover" /> : null}
@@ -239,8 +248,9 @@ const HistoryCard: React.FC<{ item: ImpactItem; colors: ThemeColors }> = ({ item
           <Ionicons name="flash" size={12} color={colors.gold} />
           <Text style={[styles.pointsText, { color: colors.gold }]}>{item.final_percent}%</Text>
         </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

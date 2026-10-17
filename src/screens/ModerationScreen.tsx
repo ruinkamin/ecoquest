@@ -1,13 +1,13 @@
 import React from 'react';
 import {
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../components/Common';
 import { Task } from '../data/tasks';
@@ -22,7 +22,7 @@ export const ModerationScreen: React.FC<{
   const queue = tasks.filter((task) => task.status === 'pending_verification');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Назад">
           <Ionicons name="arrow-back" size={21} color={theme.colors.textPrimary} />

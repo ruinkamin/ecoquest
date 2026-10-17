@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../components/Common';
 import { TaskArtwork } from '../components/TaskArtwork';
@@ -35,7 +35,7 @@ export const TaskCatalogScreen: React.FC<{
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Завдання</Text>
         <TouchableOpacity

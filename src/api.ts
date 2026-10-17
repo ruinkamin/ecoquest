@@ -8,7 +8,7 @@ const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 export const API_URL = (
   isLocalBrowser
     ? 'http://127.0.0.1:8000'
-    : configuredApiUrl || 'https://ecoquest.discloud.app'
+    : configuredApiUrl || 'https://ecoquest.discloud.dev'
 ).replace(/\/+$/, '');
 const API_HOST = API_URL.replace(/^https?:\/\//i, '').split('/')[0] || 'невідомий сервер';
 
@@ -66,7 +66,19 @@ export interface Quest {
     can_abandon: boolean;
   };
   last_submission?: Submission | null;
+  // Только в очередях модерации: что предложил AI и опасен ли квест.
+  ai_result?: {
+    approved?: boolean;
+    title?: string | null;
+    difficulty?: number | null;
+    hazard?: boolean;
+    reason?: string | null;
+  } | null;
+  hazard?: boolean;
+  moderator_note?: string | null;
 }
+
+export type QuestChanges = Partial<Pick<Quest, 'title' | 'description' | 'difficulty' | 'reward_xp'>>;
 
 export interface Submission {
   id: number;
@@ -81,8 +93,13 @@ export interface Submission {
 export interface ImpactItem {
   quest_id: number;
   title?: string | null;
+  description?: string | null;
   lat: number;
   lng: number;
+  difficulty?: number | null;
+  reward_xp?: number | null;
+  xp_per_participant?: number | null;
+  note?: string | null;
   photo_before_url: string;
   photo_after_url: string;
   final_percent: number;
@@ -342,6 +359,9 @@ export const setUnauthorizedHandler = (handler: (() => void) | null) => {
 
 export const getPhotoUrl = (url?: string | null) => {
   if (!url) return undefined;
+  // placehold.co без расширения отдает SVG, а Image на Android SVG не показывает.
+  const placeholder = /^(https:\/\/placehold\.co\/[^?.]+)(\?.*)?$/i.exec(url);
+  if (placeholder) return `${placeholder[1]}.png${placeholder[2] ?? ''}`;
   return /^https?:\/\//i.test(url) ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
@@ -362,12 +382,22 @@ export const apiFetch = async <T = unknown>(
     headers['Content-Type'] = 'application/json';
   }
 
-  let response: Response;
-  try {
-    response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
-  } catch {
+  let response: Response | undefined;
+  let networkError: unknown;
+  // Загрузку фото повторяем один раз: на мобильной сети соединение иногда рвется посреди отправки.
+  // Если первая попытка все же дошла, сервер ответит 409, и дубля не будет.
+  for (let attempt = 0; attempt < (isFormData ? 2 : 1) && !response; attempt += 1) {
+    try {
+      response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+    } catch (fetchError: unknown) {
+      networkError = fetchError;
+    }
+  }
+  if (!response) {
+    const reason = networkError instanceof Error ? networkError.message : String(networkError);
     throw new ApiError(
-      `Не вдалося зв'язатися з сервером EcoQuest (${API_HOST}). Перевірте інтернет-з'єднання та доступність сервера.`,
+      `Не вдалося зв'язатися з сервером EcoQuest (${API_HOST}). Перевірте інтернет-з'єднання та доступність сервера.`
+        + (reason ? ` [${reason}]` : ''),
       0,
     );
   }
@@ -582,7 +612,7 @@ export const api = {
     apiFetch<Quest[]>(`/organizations/${id}/moderation/quests${queryString({ status })}`),
   getOrganizationModerationQuest: (organizationId: number, questId: number) =>
     apiFetch<Quest>(`/organizations/${organizationId}/moderation/quests/${questId}`),
-  editOrganizationQuest: (organizationId: number, questId: number, changes: Partial<Pick<Quest, 'title' | 'description' | 'difficulty' | 'reward_xp'>>) =>
+  editOrganizationQuest: (organizationId: number, questId: number, changes: QuestChanges) =>
     apiFetch<Quest>(`/organizations/${organizationId}/moderation/quests/${questId}`, {
       method: 'PATCH',
       body: JSON.stringify(changes),
@@ -636,7 +666,7 @@ export const api = {
   getModerationQuests: (status: 'hazard' | 'pending' | 'available' | 'blocked' | 'all' = 'hazard') =>
     apiFetch<Quest[]>(`/moderation/quests${queryString({ status })}`),
   getModerationQuest: (id: number) => apiFetch<Quest>(`/moderation/quests/${id}`),
-  editModerationQuest: (id: number, changes: Partial<Pick<Quest, 'title' | 'description' | 'difficulty' | 'reward_xp'>>) =>
+  editModerationQuest: (id: number, changes: QuestChanges) =>
     apiFetch<Quest>(`/moderation/quests/${id}`, { method: 'PATCH', body: JSON.stringify(changes) }),
   publishModerationQuest: (id: number, reason: string) =>
     apiFetch<Quest>(`/moderation/quests/${id}/publish`, {

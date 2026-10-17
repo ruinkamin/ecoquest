@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ApiUser, Portfolio, api, getPhotoUrl } from '../api';
+import { ApiUser, ImpactItem, Portfolio, api, getPhotoUrl } from '../api';
 import { ThemeColors } from '../theme';
+import { ImpactDetailsModal } from '../components/ImpactDetailsModal';
 
 interface Props {
   userId: number;
@@ -23,6 +24,7 @@ export const PortfolioScreen: React.FC<Props> = ({ userId, colors, onClose }) =>
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [openedItem, setOpenedItem] = useState<ImpactItem | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -49,7 +51,7 @@ export const PortfolioScreen: React.FC<Props> = ({ userId, colors, onClose }) =>
   const reliability = stats?.reliability == null ? null : Math.round(stats.reliability * 100);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.nav, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Назад">
           <Ionicons name="arrow-back" size={23} color={colors.textPrimary} />
@@ -84,7 +86,13 @@ export const PortfolioScreen: React.FC<Props> = ({ userId, colors, onClose }) =>
 
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Підтверджені добрі справи</Text>
             {portfolio?.items.map((item) => (
-              <View key={item.quest_id} style={[styles.itemCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <TouchableOpacity
+                key={item.quest_id}
+                activeOpacity={0.85}
+                onPress={() => setOpenedItem(item)}
+                accessibilityRole="button"
+                style={[styles.itemCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
                 <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{item.title || 'Добра справа'}</Text>
                 <View style={styles.photoRow}>
                   <EvidencePhoto url={item.photo_before_url} label="ДО" />
@@ -97,7 +105,7 @@ export const PortfolioScreen: React.FC<Props> = ({ userId, colors, onClose }) =>
                 <Text style={[styles.itemTeam, { color: colors.textSecondary }]}>
                   {item.team.map((member: ApiUser) => member.name).join(', ') || item.owner_org_name || 'EcoQuest'}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
             {!portfolio?.items.length && (
               <Text style={[styles.empty, { color: colors.textSecondary }]}>Підтверджені квести з’являться тут після перевірки.</Text>
@@ -105,6 +113,7 @@ export const PortfolioScreen: React.FC<Props> = ({ userId, colors, onClose }) =>
           </>
         )}
       </ScrollView>
+      {openedItem ? <ImpactDetailsModal item={openedItem} colors={colors} onClose={() => setOpenedItem(null)} /> : null}
     </SafeAreaView>
   );
 };

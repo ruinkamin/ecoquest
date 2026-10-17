@@ -6,7 +6,6 @@ import {
   Linking,
   PanResponder,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,11 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeColors } from '../theme';
 import { Badge, Button } from '../components/Common';
-import { ApiUser, ImpactItem, MapReport, PlatformStats, Quest, api, getPhotoUrl } from '../api';
+import { ImpactDetailsModal } from '../components/ImpactDetailsModal';
+import { API_URL, ApiUser, ImpactItem, MapReport, PlatformStats, Quest, api, getPhotoUrl } from '../api';
 
 interface Region {
   latitude: number;
@@ -47,9 +48,10 @@ const INITIAL_REGION: Region = {
 const TILE_SIZE = 256;
 const MIN_TILE_ZOOM = 3;
 const MAX_TILE_ZOOM = 19;
+// На телефоне тайлы OSM идут через прокси бэкенда: Image на Android не передает свой User-Agent,
+// и OSM напрямую отдает картинку «Access blocked».
 const MAP_TILE_URL = process.env.EXPO_PUBLIC_MAP_TILE_URL?.trim()
-  || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const MAP_TILE_USER_AGENT = 'EcoQuest/1.0 (+https://github.com/ruinkamin/ecoquest)';
+  || (Platform.OS === 'web' ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' : `${API_URL}/tiles/{z}/{x}/{y}.png`);
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const longitudeToWorldX = (longitude: number, worldSize: number) =>
@@ -88,6 +90,7 @@ export const MapScreen: React.FC<Props> = ({
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
   const [selectedImpact, setSelectedImpact] = useState<ImpactItem | null>(null);
+  const [impactDetails, setImpactDetails] = useState<ImpactItem | null>(null);
   const [selectedReport, setSelectedReport] = useState<MapReport | null>(null);
   const [myLocation, setMyLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loadedQuery, setLoadedQuery] = useState('');
@@ -289,7 +292,7 @@ export const MapScreen: React.FC<Props> = ({
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.headingRow}>
           <View>
@@ -407,10 +410,7 @@ export const MapScreen: React.FC<Props> = ({
           {mapTiles.map((tile) => (
             <Image
               key={tile.key}
-              source={{
-                uri: tile.uri,
-                headers: Platform.OS === 'web' ? undefined : { 'User-Agent': MAP_TILE_USER_AGENT },
-              }}
+              source={{ uri: tile.uri }}
               style={[styles.mapTile, { left: tile.left, top: tile.top, width: tile.size, height: tile.size }]}
               resizeMode="stretch"
               onLoad={() => setMapTileError(false)}
@@ -654,8 +654,12 @@ export const MapScreen: React.FC<Props> = ({
           <Text style={[styles.teamLine, { color: colors.textPrimary }]}>
             Команда: {selectedImpact.team.map((member: ApiUser) => member.name).join(', ') || 'волонтери EcoQuest'}
           </Text>
+          <Button title="Детальніше" colors={colors} variant="secondary" onPress={() => setImpactDetails(selectedImpact)} />
         </View>
       )}
+      {impactDetails ? (
+        <ImpactDetailsModal item={impactDetails} colors={colors} onClose={() => setImpactDetails(null)} />
+      ) : null}
 
       {selectedReport && (
         <View style={[styles.reportSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>

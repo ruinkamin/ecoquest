@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -12,6 +11,7 @@ import {
   ScrollView,
   UIManager,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeColors } from '../theme';
 import { Button } from '../components/Common';
 import { Ionicons } from '@expo/vector-icons';
@@ -233,7 +233,7 @@ export const OnboardingAuthScreen: React.FC<Props> = ({
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.themeToggleRow}>
         <TouchableOpacity
           style={[styles.themeBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}

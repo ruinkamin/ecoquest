@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge, Button } from '../components/Common';
 import { Task } from '../data/tasks';
@@ -53,7 +53,7 @@ export const MapExperienceScreen: React.FC<{
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.controls}>
         <View style={styles.searchRow}>
           <View style={styles.search}>

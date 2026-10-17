@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api, LeaderboardEntry, OrganizationLeaderboardEntry } from '../api';
 import { ThemeColors } from '../theme';
@@ -78,7 +78,7 @@ export const LeaderboardScreen: React.FC<Props> = ({ colors, currentUserId, onBa
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} accessibilityRole="button" accessibilityLabel="Назад">
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />

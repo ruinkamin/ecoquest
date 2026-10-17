@@ -279,8 +279,7 @@ export const MapScreen: React.FC<Props> = ({
       <View style={[styles.topBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.headingRow}>
           <View>
-            <Text style={[styles.heading, { color: colors.textPrimary }]}>Доказ добра</Text>
-            <Text style={[styles.subheading, { color: colors.textSecondary }]}>Дніпро змінюється разом із вами</Text>
+            <Text style={[styles.heading, { color: colors.textPrimary }]}>EcoQuest</Text>
           </View>
           <TouchableOpacity
             style={[styles.locateButton, { backgroundColor: colors.card, borderColor: colors.border }]}

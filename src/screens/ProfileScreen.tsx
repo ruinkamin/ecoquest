@@ -89,6 +89,7 @@ export const ProfileScreen: React.FC<Props> = ({
   const [busyRewardId, setBusyRewardId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const requestNumber = useRef(0);
+  const contentScrollRef = useRef<ScrollView>(null);
   const loading = loadedTab !== activeTab;
 
   const load = useCallback(async () => {
@@ -294,6 +295,7 @@ export const ProfileScreen: React.FC<Props> = ({
             key={tab}
             style={styles.tabBtn}
             onPress={() => {
+              contentScrollRef.current?.scrollTo({ y: 0, animated: false });
               setActiveTab(tab);
               setRedeemedCode('');
             }}
@@ -316,7 +318,11 @@ export const ProfileScreen: React.FC<Props> = ({
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        ref={contentScrollRef}
+        style={styles.contentScroll}
+        contentContainerStyle={styles.scroll}
+      >
         {loading && !stats && activeTab === 'profile' ? (
           <ActivityIndicator color={colors.primaryDark} />
         ) : null}
@@ -804,6 +810,7 @@ const Metric: React.FC<{ value: number | string; label: string; colors: ThemeCol
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  contentScroll: { flex: 1 },
   tabBar: { flexDirection: 'row', gap: 3, paddingHorizontal: 8, paddingVertical: 2 },
   tabBtn: { paddingHorizontal: 9, paddingVertical: 9, alignItems: 'center' },
   tabLabel: { fontSize: 11, fontWeight: '800', paddingBottom: 1 },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 export const ImpactHero: React.FC = () => {
   const [floatValues] = useState(() =>
@@ -49,7 +49,7 @@ export const ImpactHero: React.FC = () => {
       </View>
       <View style={styles.heroLogoRim} />
       <View style={styles.heroLogoCircle}>
-        <Ionicons name="leaf" size={56} color="#064E3B" />
+        <MaterialIcons name="museum" size={56} color="#064E3B" />
       </View>
       <Ionicons name="sparkles" size={15} color="rgba(255,255,255,0.9)" style={styles.heroSparkleTop} />
       <Ionicons name="sparkles" size={11} color="rgba(255,255,255,0.7)" style={styles.heroSparkleSide} />

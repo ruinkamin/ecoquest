@@ -309,6 +309,27 @@ const appendPhoto = async (form: FormData, photo: UploadPhoto) => {
   (form as NativeUploadFormData).append('photo', photo);
 };
 
+// Expo SDK 57 подменяет глобальный fetch на expo/fetch, а он не умеет файлы React Native в FormData
+// ({ uri, name, type }) — падает с «Unsupported FormDataPart implementation». XMLHttpRequest Expo не трогает:
+// он отдает FormData нативному модулю сети React Native, который сам читает файл по uri.
+const xhrFetch = (url: string, options: RequestInit & { headers: Record<string, string> }) =>
+  new Promise<Response>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(options.method || 'GET', url);
+    Object.entries(options.headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+    xhr.onload = () => {
+      const headers = new Headers();
+      xhr.getAllResponseHeaders().trim().split(/[\r\n]+/).forEach((line) => {
+        const index = line.indexOf(':');
+        if (index > 0) headers.append(line.slice(0, index).trim(), line.slice(index + 1).trim());
+      });
+      resolve(new Response(xhr.responseText, { status: xhr.status, headers }));
+    };
+    xhr.onerror = () => reject(new Error('Network request failed'));
+    xhr.ontimeout = () => reject(new Error('Network request timed out'));
+    xhr.send(options.body as XMLHttpRequestBodyInit);
+  });
+
 export class ApiError extends Error {
   status: number;
 
@@ -388,7 +409,9 @@ export const apiFetch = async <T = unknown>(
   // Если первая попытка все же дошла, сервер ответит 409, и дубля не будет.
   for (let attempt = 0; attempt < (isFormData ? 2 : 1) && !response; attempt += 1) {
     try {
-      response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+      response = isFormData && Platform.OS !== 'web'
+        ? await xhrFetch(`${API_URL}${endpoint}`, { ...options, headers })
+        : await fetch(`${API_URL}${endpoint}`, { ...options, headers });
     } catch (fetchError: unknown) {
       networkError = fetchError;
     }

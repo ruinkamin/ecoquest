@@ -39,6 +39,14 @@ yarn-error.*
 # local tooling
 .claude/
 
+# Python backend
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.db
+backend/uploads/
+
 # typescript
 *.tsbuildinfo
 

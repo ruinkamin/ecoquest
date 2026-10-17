@@ -39,7 +39,7 @@ interface Props {
 const INITIAL_REGION: Region = {
   latitude: 48.4647,
   longitude: 35.0462,
-  longitudeDelta: 0.09,
+  longitudeDelta: 0.22,
 };
 
 const TILE_SIZE = 256;
@@ -311,7 +311,7 @@ export const MapScreen: React.FC<Props> = ({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {([
             ['quests', 'Квести'],
-            ['reports', 'Мітки жителів'],
+            ['reports', 'Активності'],
             ['impact', 'Мапа змін'],
           ] as [Layer, string][]).map(([nextLayer, label]) => (
             <TouchableOpacity
@@ -380,7 +380,7 @@ export const MapScreen: React.FC<Props> = ({
       {stats && (
         <View style={[styles.statsStrip, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <Stat label="Місць змінено" value={stats.places_cleaned} colors={colors} />
-          <Stat label="Міток жителів" value={stats.reports_total} colors={colors} />
+          <Stat label="Активностей" value={stats.reports_total} colors={colors} />
           <Stat label="Волонтерів" value={stats.volunteers} colors={colors} />
         </View>
       )}
@@ -435,7 +435,7 @@ export const MapScreen: React.FC<Props> = ({
                 }}
                 style={[styles.marker, pointStyle(report.lat, report.lng)]}
                 accessibilityRole="button"
-                accessibilityLabel="Мітка жителя"
+                accessibilityLabel="Активність"
               >
                 <View style={[styles.markerIcon, { backgroundColor: colors.gold }]}>
                   <Ionicons name="alert" size={16} color="#fff" />
@@ -500,7 +500,7 @@ export const MapScreen: React.FC<Props> = ({
                 ? 'Спробуйте змінити пошук або фільтри.'
                 : layer === 'quests' && filterMode === 'available'
                   ? 'Покажіть усі статуси або перейдіть до іншої ділянки.'
-                  : 'Пересуньте мапу або додайте нову мітку.'}
+                  : 'Пересуньте мапу або створіть нову активність.'}
             </Text>
           </View>
         ) : null}
@@ -533,7 +533,7 @@ export const MapScreen: React.FC<Props> = ({
           style={[styles.addReportFab, { backgroundColor: colors.primary }]}
           onPress={isAuthed ? onOpenReportModal : onRequireAuth}
           accessibilityRole="button"
-          accessibilityLabel="Додати мітку"
+          accessibilityLabel="Додати активність"
         >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
@@ -564,7 +564,7 @@ export const MapScreen: React.FC<Props> = ({
       <View style={[styles.mapFooter, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <View style={styles.footerText}>
           <Text style={[styles.footerTitle, { color: colors.textPrimary }]}>
-            {layer === 'quests' ? `${visibleQuests.length} квестів поруч` : layer === 'reports' ? `${visibleReports.length} міток поруч` : `${visibleImpacts.length} перевірених справ`}
+            {layer === 'quests' ? `${visibleQuests.length} квестів поруч` : layer === 'reports' ? `${visibleReports.length} активностей поруч` : `${visibleImpacts.length} перевірених справ`}
           </Text>
           <Text style={[styles.footerSubtitle, { color: colors.textSecondary }]}>Дніпро · © OpenStreetMap contributors</Text>
         </View>
@@ -631,7 +631,7 @@ export const MapScreen: React.FC<Props> = ({
       {selectedReport && (
         <View style={[styles.reportSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.sheetHeader}>
-            <Badge label="Мітка жителя" color={colors.gold} bg={colors.goldLight} />
+            <Badge label="Активність" color={colors.gold} bg={colors.goldLight} />
             <TouchableOpacity onPress={() => setSelectedReport(null)} accessibilityRole="button" accessibilityLabel="Закрити картку">
               <Ionicons name="close" size={21} color={colors.textSecondary} />
             </TouchableOpacity>

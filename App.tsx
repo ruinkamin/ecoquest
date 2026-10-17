@@ -43,6 +43,7 @@ export default function App() {
   const [showAddReportModal, setShowAddReportModal] = useState(false);
   const [reportDesc, setReportDesc] = useState('');
   const [reportPhoto, setReportPhoto] = useState<UploadPhoto | null>(null);
+  const [reportReviewerType, setReportReviewerType] = useState<'self' | 'ai'>('ai');
   const [creatingReport, setCreatingReport] = useState(false);
   const [mapRefreshKey, setMapRefreshKey] = useState(0);
   const [focusImpactId, setFocusImpactId] = useState<number | null>(null);
@@ -136,7 +137,7 @@ export default function App() {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Потрібен доступ до камери', 'Дозвольте доступ у налаштуваннях телефона, щоб додати фото мітки.');
+        Alert.alert('Потрібен доступ до камери', 'Дозвольте доступ у налаштуваннях телефона, щоб додати фото активності.');
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -168,14 +169,16 @@ export default function App() {
         location.coords.latitude,
         location.coords.longitude,
         reportDesc,
+        reportReviewerType,
       );
       setShowAddReportModal(false);
       setReportDesc('');
       setReportPhoto(null);
+      setReportReviewerType('ai');
       setMapRefreshKey((key) => key + 1);
-      Alert.alert('Мітку додано', 'Організації побачать її на мапі та зможуть створити квест.');
+      Alert.alert('Активність створено', 'Організації побачать її на мапі та зможуть створити квест.');
     } catch (error: unknown) {
-      Alert.alert('Не вдалося додати мітку', error instanceof Error ? error.message : 'Перевірте з’єднання та спробуйте ще раз.');
+      Alert.alert('Не вдалося створити активність', error instanceof Error ? error.message : 'Перевірте з’єднання та спробуйте ще раз.');
     } finally {
       setCreatingReport(false);
     }
@@ -347,7 +350,7 @@ export default function App() {
         </Modal>
       )}
 
-      {/* Модалка створення мітки сміття POST /reports (нова вимога API 4.4) */}
+      {/* Створення активності на мапі */}
       <Modal
         visible={showAddReportModal}
         transparent
@@ -357,10 +360,10 @@ export default function App() {
         <View style={styles.modalBg}>
           <View style={[styles.reportModalCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalCardTitle, { color: colors.textPrimary }]}>
-              Повідомити про сміття
+              Створити активність
             </Text>
             <Text style={[styles.modalCardSub, { color: colors.textSecondary }]}>
-              Організації побачать вашу мітку і зроблять з неї квест для прибирання
+              Додайте фото й оберіть, хто оцінить активність.
             </Text>
 
             <TouchableOpacity
@@ -373,7 +376,7 @@ export default function App() {
               ) : (
                 <>
                   <Ionicons name="camera-outline" size={32} color={colors.primary} />
-                  <Text style={[styles.photoDropText, { color: colors.textSecondary }]}>Додати фото забруднення</Text>
+                  <Text style={[styles.photoDropText, { color: colors.textSecondary }]}>Додати фото активності</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -389,9 +392,45 @@ export default function App() {
               onChangeText={setReportDesc}
             />
 
+            <Text style={[styles.modalCardSub, { color: colors.textPrimary, fontWeight: '800' }]}>
+              Хто оцінюватиме?
+            </Text>
+            <View style={styles.reportReviewerRow}>
+              {([
+                ['self', 'Я оціню'],
+                ['ai', 'Штучний інтелект'],
+              ] as const).map(([value, label]) => {
+                const selected = reportReviewerType === value;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[
+                      styles.reportReviewerOption,
+                      {
+                        backgroundColor: selected ? colors.primaryLight : colors.surface,
+                        borderColor: selected ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setReportReviewerType(value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                  >
+                    <Ionicons
+                      name={selected ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={selected ? colors.primaryDark : colors.textMuted}
+                    />
+                    <Text style={{ color: selected ? colors.primaryDark : colors.textSecondary, fontSize: 12, fontWeight: '800' }}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             <View style={{ gap: 8 }}>
               <Button
-                title="Надіслати мітку"
+                title="Створити активність"
                 colors={colors}
                 variant="primary"
                 loading={creatingReport}
@@ -406,6 +445,7 @@ export default function App() {
                   setShowAddReportModal(false);
                   setReportDesc('');
                   setReportPhoto(null);
+                  setReportReviewerType('ai');
                 }}
               />
             </View>
@@ -493,6 +533,8 @@ const styles = StyleSheet.create({
   },
   photoDropText: { fontSize: 13, fontWeight: '600', marginTop: 6 },
   reportPreview: { width: '100%', height: '100%', borderRadius: 12 },
+  reportReviewerRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  reportReviewerOption: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderRadius: 12, paddingHorizontal: 6 },
   reportInput: {
     height: 48,
     borderWidth: 1,

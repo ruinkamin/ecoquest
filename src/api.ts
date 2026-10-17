@@ -1,7 +1,14 @@
 import { Platform } from 'react-native';
 
+const isLocalBrowser =
+  Platform.OS === 'web' &&
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 export const API_URL = (
-  process.env.EXPO_PUBLIC_API_URL?.trim() || 'https://ecoquest.discloud.app'
+  isLocalBrowser
+    ? 'http://127.0.0.1:8000'
+    : configuredApiUrl || 'https://ecoquest.discloud.app'
 ).replace(/\/+$/, '');
 const API_HOST = API_URL.replace(/^https?:\/\//i, '').split('/')[0] || 'невідомий сервер';
 
@@ -56,6 +63,7 @@ export interface Quest {
     can_invite: boolean;
     can_respond: boolean;
     can_submit: boolean;
+    can_abandon: boolean;
   };
   last_submission?: Submission | null;
 }
@@ -86,11 +94,28 @@ export interface ImpactItem {
 
 export interface MapReport {
   id: number;
+  created_by?: number;
   lat: number;
   lng: number;
   photo_url: string;
   description?: string | null;
   status: string;
+  reviewer_type: 'self' | 'ai';
+  review_status: 'pending' | 'evaluated' | 'failed';
+  review_score?: number | null;
+  review_approved?: boolean | null;
+  review_note?: string | null;
+  reviewed_at?: string | null;
+  created_at?: string;
+}
+
+export interface VolunteerTeam {
+  id: number;
+  name: string;
+  invite_code: string;
+  created_by: number;
+  created_at: string;
+  members: ApiUser[];
 }
 
 export interface PlatformStats {
@@ -457,6 +482,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ mode, organization_id: organizationId }),
     }),
+  abandonQuest: (id: number) =>
+    apiFetch<Quest>(`/quests/${id}/abandon`, { method: 'POST' }),
   removeQuestParticipant: (questId: number, userId: number) =>
     apiFetch<void>(`/quests/${questId}/participants/${userId}`, { method: 'DELETE' }),
   respondParticipation: (id: number, accept: boolean) =>
@@ -469,14 +496,29 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ user_id: userId, email }),
     }),
-  createReport: async (photo: UploadPhoto, lat: number, lng: number, description: string) => {
+  createReport: async (
+    photo: UploadPhoto,
+    lat: number,
+    lng: number,
+    description: string,
+    reviewerType: 'self' | 'ai',
+  ) => {
     const form = new FormData();
     await appendPhoto(form, photo);
     form.append('lat', String(lat));
     form.append('lng', String(lng));
+    form.append('reviewer_type', reviewerType);
     if (description.trim()) form.append('description', description.trim());
-    return apiFetch('/reports', { method: 'POST', body: form });
+    return apiFetch<MapReport>('/reports', { method: 'POST', body: form });
   },
+  getMyReports: () => apiFetch<MapReport[]>('/me/reports?limit=500'),
+  evaluateReport: (id: number, score: number, note?: string) =>
+    apiFetch<MapReport>(`/reports/${id}/evaluate`, {
+      method: 'POST',
+      body: JSON.stringify({ score, note }),
+    }),
+  retryReportReview: (id: number) =>
+    apiFetch<MapReport>(`/reports/${id}/retry-review`, { method: 'POST' }),
   submitQuestReport: async (id: number, photo: UploadPhoto) => {
     const form = new FormData();
     await appendPhoto(form, photo);
@@ -490,6 +532,11 @@ export const api = {
   getMyPartners: () => apiFetch<PartnerSummary[]>('/me/partners'),
   getMyRedemptions: () => apiFetch<Redemption[]>('/me/redemptions'),
   getMyInvitations: () => apiFetch<{ quest: Quest; status: string }[]>('/me/invitations'),
+  getMyTeams: () => apiFetch<VolunteerTeam[]>('/me/teams'),
+  createTeam: (name: string) =>
+    apiFetch<VolunteerTeam>('/teams', { method: 'POST', body: JSON.stringify({ name }) }),
+  joinTeam: (code: string) =>
+    apiFetch<VolunteerTeam>('/teams/join', { method: 'POST', body: JSON.stringify({ code }) }),
   searchUsers: (search: string) => apiFetch<ApiUser[]>(`/users/search${queryString({ q: search })}`),
   getUserStats: (id: number) => apiFetch<UserStats>(`/users/${id}/stats`),
   getPortfolio: (id: number) => apiFetch<Portfolio>(`/users/${id}/portfolio`),

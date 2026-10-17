@@ -298,6 +298,14 @@ export const TaskDetailsScreen: React.FC<Props> = ({
               <Ionicons name="hourglass-outline" size={20} color={colors.secondaryPurple} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 2 }]}>Останній фотозвіт</Text>
+                {getPhotoUrl(details.last_submission.photo_url) ? (
+                  <Image
+                    source={{ uri: getPhotoUrl(details.last_submission.photo_url) }}
+                    style={styles.submissionPhoto}
+                    resizeMode="cover"
+                    accessibilityLabel="Фото результату виконання квесту"
+                  />
+                ) : null}
                 <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                   {details.last_submission.status}
                   {details.last_submission.final_percent != null ? ` · ${details.last_submission.final_percent}%` : ''}
@@ -422,6 +430,7 @@ const styles = StyleSheet.create({
   searchResult: { minHeight: 42, borderWidth: 1, borderRadius: 11, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   emptyText: { fontSize: 12, lineHeight: 18 },
   submissionCard: { flexDirection: 'row', gap: 10, alignItems: 'center', padding: 13, borderRadius: 14, marginTop: 16 },
+  submissionPhoto: { width: '100%', height: 160, borderRadius: 10, marginTop: 8, marginBottom: 4 },
   errorText: { color: '#DC2626', fontSize: 12, fontWeight: '700', marginTop: 12 },
   footerBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 14, borderTopWidth: 1, gap: 8 },
   modeRow: { flexDirection: 'row', gap: 8 },
